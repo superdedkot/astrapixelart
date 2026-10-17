@@ -1,0 +1,18 @@
+[project]
+name = "astrapixelart"
+version = "0.3.1"
+description = "An Astra plugin"
+requires-python = ">=3.10"
+dependencies = [
+    "astra-plugin-sdk>=0.6,<0.7",
+    "grpcio>=1.60.0",
+    "protobuf>=4.25.0",
+    "Pillow>=11,<13",
+    "imageio-ffmpeg>=0.6,<0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astra Pixel Art</title>
+  <script src="http://astra-plugin.localhost/bridge/astra-bridge.js"></script>
+  <style>
+    :root { color-scheme: normal; }
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: transparent;
+    }
+
+    body {
+      height: 100vh;
+      height: 100dvh;
+      padding: 12px 16px;
+      overflow: hidden;
+      color-scheme: light dark;
+      color: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
+
+    [hidden] { display: none !important; }
+
+    #top-menu {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      min-height: 48px;
+      margin: 0 0 12px;
+      background: transparent;
+    }
+
+    #top-menu button {
+      padding: 9px 16px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      -webkit-text-stroke: 0.7px black;
+      text-shadow:
+        1px 1px 0 black,
+        -1px 1px 0 black,
+        1px -1px 0 black,
+        -1px -1px 0 black;
+    }
+
+    #top-menu button:hover,
+    #top-menu button.active {
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    #top-menu button.active {
+      text-decoration: underline;
+      text-underline-offset: 5px;
+    }
+
+    h2 { margin: 0 0 14px; font-size: 18px; }
+    h3 { margin: 18px 0 8px; font-size: 16px; }
+
+    #art-page {
+      height: calc(100% - 60px);
+      min-height: 0;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr) 280px;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    .panel {
+      min-width: 0;
+      min-height: 0;
+      padding: 14px;
+      border: 1px solid #606775;
+      border-radius: 8px;
+      background: rgba(35, 39, 48, 0.78);
+    }
+
+    .tools-panel,
+    .layers-panel {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+    }
+
+    button, select, input { font: inherit; }
+    button { padding: 7px 10px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    #size { padding: 5px; }
+
+    #picker {
+      width: 100%;
+      max-width: 280px;
+      margin: 16px 0;
+    }
+
+    #hue {
+      position: relative;
+      height: 30px;
+      background: linear-gradient(
+        to right,
+        red 0%, yellow 16.67%, lime 33.33%,
+        cyan 50%, blue 66.67%, magenta 83.33%, red 100%
+      );
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #hue-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: white;
+      box-shadow: 0 0 0 1px black;
+      pointer-events: none;
+    }
+
+    #color-square {
+      position: relative;
+      height: 250px;
+      background-color: red;
+      background-image:
+        linear-gradient(to top, black, transparent),
+        linear-gradient(to right, white, transparent);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #color-marker {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 1px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px black;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    #chosen-color {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    #color-preview {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #aaa;
+    }
+
+    #used-colors {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 3px;
+      max-width: 280px;
+      margin: 8px 0 16px;
+    }
+
+    #used-colors button {
+      width: 100%;
+      aspect-ratio: 1;
+      min-width: 0;
+      padding: 0;
+      border: 1px solid #777;
+      background: white;
+    }
+
+    #used-colors button.active-color {
+      outline: 2px solid white;
+      outline-offset: 1px;
+    }
+
+    #tools button.selected {
+      outline: 3px solid white;
+      outline-offset: 2px;
+    }
+
+    #selection-options[hidden] { display: none; }
+
+    #brush-size {
+      width: 180px;
+      max-width: 100%;
+    }
+
+    #grid-row { margin: 14px 0; }
+
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .canvas-panel h2 {
+      flex: none;
+    }
+
+    #viewport {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid #667;
+      background: rgba(0, 0, 0, 0.25);
+      touch-action: none;
+      outline: none;
+    }
+
+    #viewport:focus { border-color: #90caff; }
+
+    #canvas-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 512px;
+      transform: translate(-50%, -50%);
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid #aaa;
+      background-color: white;
+      background-image: repeating-conic-gradient(
+        #ddd 0% 25%, white 0% 50%
+      );
+      background-size: 20px 20px;
+      image-rendering: pixelated;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    #pixel-grid,
+    #selection-overlay {
+      position: absolute;
+      inset: 1px;
+      width: calc(100% - 2px);
+      height: calc(100% - 2px);
+      pointer-events: none;
+    }
+
+    #pixel-grid {
+      display: none;
+      background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.45) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 1px, transparent 1px);
+    }
+
+    #selection-overlay { image-rendering: pixelated; }
+
+    #zoom {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    #status {
+      flex: none;
+      min-height: 28px;
+      max-height: 72px;
+      margin: 10px 0 0;
+      overflow: auto;
+      overflow-wrap: anywhere;
+      text-align: left;
+    }
+
+    #layers,
+    #gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 14px 0;
+    }
+
+    .layer-row,
+    .gallery-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      padding: 5px;
+      border: 1px solid #5b606b;
+      border-radius: 5px;
+    }
+
+    .layer-row.active,
+    .gallery-row.active {
+      border-color: white;
+      background: rgba(120, 130, 150, 0.35);
+    }
+
+    .layer-row button,
+    .gallery-row button {
+      padding: 4px 7px;
+    }
+
+    .layer-name,
+    .gallery-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    #opacity { width: 100%; }
+
+    .hint {
+      opacity: 0.85;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    #gallery-page,
+    #animation-page,
+    #settings-page {
+      height: calc(100% - 60px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    #gallery-scroll { overflow-x: auto; }
+
+    #gallery-tiles {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(100px, 1fr));
+      gap: 10px;
+      min-width: 980px;
+    }
+
+    .project-tile {
+      min-width: 0;
+      padding: 7px;
+      border: 1px solid #667;
+      border-radius: 6px;
+      background: rgba(35, 39, 48, 0.70);
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .project-tile:hover,
+    .project-tile.active {
+      border-color: white;
+    }
+
+    .project-tile canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      margin-bottom: 7px;
+      border: 1px solid #777;
+      background-color: white;
+      background-image: repeating-conic-gradient(
+        #ddd 0% 25%, white 0% 50%
+      );
+      background-size: 12px 12px;
+      image-rendering: pixelated;
+    }
+
+    .tile-name {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #gallery-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    #gallery-message {
+      min-height: 24px;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 220px minmax(0, 1fr) 220px;
+        gap: 8px;
+      }
+
+      .panel { padding: 8px; }
+    }
+      #project-name, #gallery { display: none !important; }
+  </style>
+</head>
+<body>
+  <nav id="top-menu" aria-label="Разделы Astra Pixel Art">
+    <button id="tab-art" type="button" class="active">Art</button>
+    <button id="tab-animation" type="button">Анимация</button>
+    <button id="tab-gallery" type="button">Галерея</button>
+    <button id="tab-settings" type="button">Настройки</button>
+  </nav>
+
+  <main id="art-page">
+    <div class="workspace">
+      <section class="panel tools-panel">
+        <h2>Инструменты</h2>
+
+        <div class="row">
+          <button id="save" type="button">Сохранить PNG</button>
+          <button id="undo" type="button" title="Ctrl+Z">↶ Отменить</button>
+          <button id="redo" type="button" title="Ctrl+Y">↷ Вернуть</button>
+        </div>
+
+        <div class="row">
+          <label for="size">Размер холста:</label>
+          <select id="size">
+            <option value="8">8×8</option>
+            <option value="16">16×16</option>
+            <option value="32">32×32</option>
+            <option value="64" selected>64×64</option>
+            <option value="128">128×128</option>
+            <option value="256">256×256</option>
+            <option value="512">512×512</option>
+          </select>
+        </div>
+
+        <div id="picker">
+          <div id="hue">
+            <div id="hue-marker"></div>
+          </div>
+          <div id="color-square">
+            <div id="color-marker"></div>
+          </div>
+          <div id="chosen-color">
+            <span id="color-preview"></span>
+            <span id="color-value"></span>
+          </div>
+        </div>
+
+        <strong>Выбранные цвета</strong>
+        <div id="used-colors"></div>
+
+        <div id="tools" class="row">
+          <button id="pen" type="button">✎ Перо</button>
+          <button id="eraser" type="button">▧ Ластик</button>
+          <button id="fill" type="button">▣ Заливка</button>
+          <button id="select-tool" type="button">▱ Выделение</button>
+          <button id="eyedropper" type="button">◉ Пипетка</button>
+        </div>
+
+        <div id="selection-options" hidden>
+          <label for="selection-mode">Форма выделения:</label>
+          <select id="selection-mode">
+            <option value="rect">Прямоугольная зона</option>
+            <option value="ellipse">Овальная зона</option>
+            <option value="free">Произвольная зона</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <button id="clear-selection" type="button">Снять выделение</button>
+        </div>
+
+        <label for="brush-size">Толщина пера:</label>
+        <div class="row">
+          <input id="brush-size" type="range" min="1" max="50" value="1">
+          <span id="brush-value">1 пикс.</span>
+        </div>
+
+        <div id="grid-row">
+          <label>
+            <input id="grid-toggle" type="checkbox" checked>
+            Направляющая сетка
+          </label>
+        </div>
+      </section>
+
+      <section class="panel canvas-panel">
+        <h2>Холст</h2>
+
+        <div id="viewport" tabindex="0"
+             aria-label="Холст; стрелки двигают видимую область">
+          <div id="canvas-wrap">
+            <canvas id="canvas" width="64" height="64"></canvas>
+            <div id="pixel-grid" aria-hidden="true"></div>
+            <canvas id="selection-overlay" width="64" height="64"
+                    aria-hidden="true"></canvas>
+          </div>
+        </div>
+
+        <p id="status" aria-live="polite"></p>
+        <p class="hint" style="margin:2px 0 0;text-align:left">Проекты сохраняются автоматически. PNG — отдельный файл.</p>
+      </section>
+
+      <section class="panel layers-panel">
+        <h2>Слои</h2>
+
+        <button id="import" type="button">Добавить рисунок как слой</button>
+        <input id="file-input" type="file" hidden
+               accept=".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp">
+
+        <div class="row">
+          <button id="add-layer" type="button">+ Добавить</button>
+          <button id="delete-layer" type="button">Удалить</button>
+        </div>
+
+        <div class="row">
+          <button id="move-up" type="button">↑ Выше</button>
+          <button id="move-down" type="button">↓ Ниже</button>
+        </div>
+
+        <div id="layers"></div>
+
+        <label for="opacity">
+          Прозрачность выбранного слоя: <span id="opacity-value">100%</span>
+        </label>
+        <input id="opacity" type="range" min="0" max="100" value="100">
+
+        <h3>Настройка холста</h3>
+        <label for="zoom">Масштаб: <span id="zoom-value">100%</span></label>
+        <input id="zoom" type="range" min="25" max="800" step="5" value="100">
+        <div class="row">
+          <button id="reset-view" type="button">Центрировать</button>
+        </div>
+        <p class="hint">
+          Колесо над холстом меняет масштаб. Средняя кнопка мыши
+          и стрелки перемещают холст.
+        </p>
+
+        
+        <div class="row">
+          <button id="new-project" type="button">Новый проект</button>
+          <button id="save-project" type="button">Сохранить изменения</button>
+        </div>
+        <p id="project-name"></p>
+        <div id="gallery"></div>
+        
+      </section>
+    </div>
+  </main>
+
+  <section id="animation-page" hidden>
+    <h2>Анимация</h2>
+    <p>Этот раздел пока пустой.</p>
+  </section>
+
+  <section id="gallery-page" hidden>
+    <h2>Галерея проектов</h2>
+    <p>Нажми на работу, чтобы открыть её в Art.</p>
+    <div id="gallery-scroll">
+      <div id="gallery-tiles"></div>
+    </div>
+    <div id="gallery-controls">
+      <button id="gallery-prev" type="button">← Назад</button>
+      <span id="gallery-page-number"></span>
+      <button id="gallery-next" type="button">Вперёд →</button>
+    </div>
+    <p id="gallery-message" aria-live="polite"></p>
+  </section>
+
+  <section id="settings-page" hidden>
+    <style>
+      #settings-page {
+        text-align: center;
+      }
+      #settings-page .settings-welcome {
+        max-width: 740px;
+        margin: 40px auto 60px;
+        padding: 24px;
+        font-size: 20px;
+        line-height: 1.6;
+      }
+      #settings-page .settings-welcome h2 {
+        font-size: 32px;
+        margin-bottom: 24px;
+      }
+      #settings-page .settings-welcome p {
+        margin: 0 0 20px;
+      }
+      #settings-page .settings-welcome a {
+        color: #90caff;
+      }
+      #settings-page .settings-version {
+        font-size: 26px;
+        font-weight: bold;
+      }
+      #settings-page .settings-footnote {
+        opacity: 0.8;
+        font-size: 17px;
+      }
+    </style>
+    <div class="settings-welcome">
+      <h2>Привет от автора</h2>
+      <p>Доброго времени суток! Я кот. И я художник.</p>
+      <p>Этот плагин — мой подарок другим художникам. Я постарался собрать в нём инструменты, которые сам хотел бы иметь под рукой: рисование пиксель-арта, создание анимаций для 2D-моделей Astra и анимированных стикеров.</p>
+      <p>Плагин ещё развивается. Новости об обновлениях буду публиковать в <a href="https://t.me/super_ded_kot" target="_blank" rel="noopener noreferrer">моём Telegram-канале</a> — если APA вам зайдёт, буду рад вас там видеть.</p>
+      <p class="settings-version">Astra Pixel Art 0.3.1</p>
+      <p>Пользуйтесь APA с удовольствием!<br>Ваш Доктор Кот 🐱</p>
+      <p class="settings-footnote">Сами настройки появятся чуть позже.</p>
+    </div>
+  </section>
+
+  <script src="./main.js"></script>
+  <script src="./menu.js"></script>
+  <script src="./layout.js"></script>
+  <script src="./files-menu.js"></script>
+  <script src="./rotate.js"></script>
+  <script src="./layer-previews.js"></script>
+  <script src="./layers-layout.js"></script>
+  <script src="./tools-layout.js"></script>
+  <script src="./animation-panels.js"></script>
+  <script src="./animation-boundary.js"></script>
+  <script src="./animation-gallery.js"></script>
+  <script src="./gallery-rename.js"></script>
+  <script src="./gallery-delete.js"></script>
+  <script src="./gallery-tiles-layout.js"></script>
+  <script src="./gallery-spacing.js"></script>
+  <script src="./animation-open.js"></script>
+  <script src="./animation-files-order.js"></script>
+  <script src="./animation-layer-clipboard.js"></script>
+</body>
+</html>

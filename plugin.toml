@@ -1,0 +1,16 @@
+[plugin]
+min_astra_version = "0.2.6"
+id = "astrapixelart"
+name = "Astra Pixel Art"
+version = "0.3.1"
+description = "Pixel art editor"
+author = ""
+license = "MIT"
+
+[entry]
+command = "python"
+args = ["-m", "src.plugin"]
+runtimes = ["python"]
+
+[capabilities]
+ui_contributions = true
