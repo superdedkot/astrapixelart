@@ -2,9 +2,9 @@
 min_astra_version = "0.2.6"
 id = "astrapixelart"
 name = "Astra Pixel Art"
-version = "0.3.1"
-description = "Pixel art editor"
-author = ""
+version = "0.3.2"
+description = "Create pixel art from 8x8 to 512x512, animate it frame by frame, and export to GIF, MP4, or transparent WebM stickers."
+author = "Доктор Кот (superdedkot)"
 license = "MIT"
 
 [entry]
