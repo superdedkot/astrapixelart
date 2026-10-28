@@ -5,6 +5,7 @@
     art: document.getElementById("art-page"),
     animation: document.getElementById("animation-page"),
     gallery: document.getElementById("gallery-page"),
+    astra2d: document.getElementById("astra2d-page"),
     settings: document.getElementById("settings-page")
   };
 
@@ -12,6 +13,7 @@
     art: document.getElementById("tab-art"),
     animation: document.getElementById("tab-animation"),
     gallery: document.getElementById("tab-gallery"),
+    astra2d: document.getElementById("tab-astra2d"),
     settings: document.getElementById("tab-settings")
   };
 
@@ -223,6 +225,8 @@
   tabs.settings.addEventListener(
     "click", () => showSection("settings")
   );
+
+  tabs.astra2d.addEventListener("click", () => showSection("astra2d"));
 
   tabs.gallery.addEventListener("click", () => {
     showSection("gallery");

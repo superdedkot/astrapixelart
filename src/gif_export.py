@@ -67,7 +67,8 @@ def save_gif_file(params):
         gif_frame.info["disposal"] = 2
         result_frames.append(gif_frame)
 
-    downloads = Path.home() / "Downloads"
+    from .export_settings import get_export_directory
+    downloads = get_export_directory()
     downloads.mkdir(parents=True, exist_ok=True)
     duration = max(10, round(1000 / fps / 10) * 10)
 

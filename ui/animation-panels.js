@@ -9,15 +9,28 @@
     { count: 4, rows: 2, columns: 2 },
     { count: 6, rows: 2, columns: 3 },
     { count: 8, rows: 2, columns: 4 },
+    { count: 9, rows: 3, columns: 3 },
     { count: 10, rows: 2, columns: 5 },
     { count: 12, rows: 3, columns: 4 },
-    { count: 15, rows: 3, columns: 5 }
+    { count: 15, rows: 3, columns: 5 },
+    { count: 16, rows: 4, columns: 4 },
+    { count: 20, rows: 4, columns: 5 },
+    { count: 21, rows: 3, columns: 7 }
   ];
 
   const style = document.createElement("style");
   style.textContent = `
     body.animation-workspace .workspace {
       grid-template-rows: minmax(0, 1fr) 170px;
+    }
+    body.animation-workspace.animation-panels-collapsed .workspace {
+      grid-template-rows: minmax(0, 1fr);
+    }
+    #animation-panels-toggle {
+      margin-left: 12px;
+      padding: 5px 10px;
+      font-size: 13px;
+      vertical-align: middle;
     }
     body.animation-workspace .workspace > .tools-panel {
       grid-column: 1; grid-row: 1;
@@ -105,8 +118,33 @@
 
   const formatPanel = addPanel("animation-format", "Формат");
   const framesPanel = addPanel("animation-frames", "Кадры");
-  const reservePanel = addPanel("animation-reserve", "Резерв");
+  framesPanel.querySelector("h2").hidden = true;
+  framesPanel.setAttribute("aria-label", "Кадры анимации");
+  const reservePanel = addPanel("animation-reserve", "Калька");
   const panels = [formatPanel, framesPanel, reservePanel];
+  let bottomPanelsCollapsed = false;
+  const panelsToggle = document.createElement("button");
+  panelsToggle.id = "animation-panels-toggle";
+  panelsToggle.type = "button";
+  panelsToggle.hidden = true;
+  panelsToggle.setAttribute("aria-controls", "animation-format animation-frames animation-reserve");
+  workspace.querySelector(".canvas-panel h2").appendChild(panelsToggle);
+
+  function syncBottomPanels(active) {
+    document.body.classList.toggle("animation-panels-collapsed", active && bottomPanelsCollapsed);
+    panelsToggle.hidden = !active;
+    panelsToggle.textContent = bottomPanelsCollapsed
+      ? "▴ Показать панели" : "▾ Свернуть панели";
+    panelsToggle.setAttribute("aria-expanded", String(!bottomPanelsCollapsed));
+    panelsToggle.title = "Формат, кадры и калька — скрыть или вернуть нижние панели";
+    for (const panel of panels) panel.hidden = !active || bottomPanelsCollapsed;
+  }
+
+  panelsToggle.addEventListener("click", () => {
+    bottomPanelsCollapsed = !bottomPanelsCollapsed;
+    syncBottomPanels(tabAnimation.classList.contains("active"));
+    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+  });
 
   const formatOptions = document.createElement("div");
   formatOptions.id = "animation-format-options";
@@ -123,6 +161,89 @@
   let chosenFormat = formats[2];
   let chosenFrame = 0;
   let frames = null;
+  let onionPlaying = false;
+  const onionCanvas = document.createElement("canvas");
+  onionCanvas.id = "animation-onion-overlay";
+  onionCanvas.hidden = true;
+  onionCanvas.setAttribute("aria-hidden", "true");
+  document.getElementById("canvas-wrap").insertBefore(
+    onionCanvas, document.getElementById("pixel-grid")
+  );
+  const onionBuffer = document.createElement("canvas");
+
+  function onionCheckbox(text) {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    label.append(input, document.createTextNode(` ${text}`));
+    reservePanel.appendChild(label);
+    input.addEventListener("change", updateOnionSkin);
+    return input;
+  }
+  const onionEnabled = onionCheckbox("Включить кальку");
+  const onionPrevious = onionCheckbox("Предыдущий кадр");
+  const onionNext = onionCheckbox("Следующий кадр");
+  onionPrevious.checked = true;
+  onionNext.checked = true;
+  const onionOpacityLabel = document.createElement("label");
+  const onionOpacityValue = document.createElement("span");
+  onionOpacityValue.textContent = "30%";
+  onionOpacityLabel.append(document.createTextNode("Непрозрачность: "), onionOpacityValue);
+  const onionOpacity = document.createElement("input");
+  onionOpacity.type = "range";
+  onionOpacity.min = "0";
+  onionOpacity.max = "100";
+  onionOpacity.value = "30";
+  onionOpacity.setAttribute("aria-label", "Непрозрачность кальки");
+  reservePanel.append(onionOpacityLabel, onionOpacity);
+  onionOpacity.addEventListener("input", () => {
+    onionOpacityValue.textContent = `${onionOpacity.value}%`;
+    updateOnionSkin();
+  });
+
+  function drawOnionFrame(frame, context, opacity) {
+    const size = canvas.width;
+    onionBuffer.width = size;
+    onionBuffer.height = size;
+    const buffer = onionBuffer.getContext("2d");
+    buffer.imageSmoothingEnabled = false;
+    for (let index = frame.layers.length - 1; index >= 0; index--) {
+      const layer = frame.layers[index];
+      if (layer.visible === false) continue;
+      buffer.globalAlpha = Math.max(0, Math.min(100, Number(layer.opacity))) / 100;
+      const image = layer.canvas;
+      if (image.width === frame.size * 3 && image.height === frame.size * 3) {
+        buffer.drawImage(image, frame.size, frame.size, frame.size, frame.size,
+          0, 0, size, size);
+      } else {
+        buffer.drawImage(image, 0, 0, image.width, image.height, 0, 0, size, size);
+      }
+    }
+    context.globalAlpha = opacity;
+    context.drawImage(onionBuffer, 0, 0);
+    context.globalAlpha = 1;
+  }
+
+  function updateOnionSkin() {
+    const visible = tabAnimation.classList.contains("active") &&
+      onionEnabled.checked && !onionPlaying && !!frames;
+    onionCanvas.hidden = !visible;
+    if (!visible) return;
+    onionCanvas.width = canvas.width;
+    onionCanvas.height = canvas.height;
+    const context = onionCanvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
+    const opacity = Number(onionOpacity.value) / 100;
+    if (onionPrevious.checked && chosenFrame > 0) {
+      drawOnionFrame(frames[chosenFrame - 1], context, opacity);
+    }
+    if (onionNext.checked && chosenFrame + 1 < frames.length) {
+      drawOnionFrame(frames[chosenFrame + 1], context, opacity);
+    }
+  }
+  new MutationObserver(updateOnionSkin).observe(tabAnimation, {
+    attributes: true, attributeFilter: ["class"]
+  });
 
   function emptyFrame() {
     const image = document.createElement("canvas");
@@ -181,6 +302,13 @@
       button.classList.toggle("active", index === chosenFrame);
       button.setAttribute("aria-label", `Кадр ${index + 1}`);
       button.textContent = String(index + 1);
+      const thumbnail = document.createElement("canvas");
+      thumbnail.width = 40;
+      thumbnail.height = 40;
+      thumbnail.className = "frame-thumbnail";
+      thumbnail.setAttribute("aria-hidden", "true");
+      drawFrameThumbnail(frame, thumbnail);
+      button.appendChild(thumbnail);
 
       const position = document.createElement("small");
       if (chosenFormat === "custom") {
@@ -199,6 +327,7 @@
       more.className = "frame-more";
       more.textContent = "☰";
       more.title = `Действия с кадром ${index + 1}`;
+      more.setAttribute("aria-label", more.title);
       more.addEventListener("click", (event) => {
         event.stopPropagation();
         showFrameActions(index, more);
@@ -230,7 +359,45 @@
     }
 
     frameList.scrollLeft = previousScroll;
+    updateOnionSkin();
   }
+
+  function drawFrameThumbnail(frame, thumbnail) {
+    const context = thumbnail.getContext("2d");
+    context.clearRect(0, 0, 40, 40);
+    context.imageSmoothingEnabled = false;
+    for (let index = frame.layers.length - 1; index >= 0; index--) {
+      const layer = frame.layers[index];
+      if (layer.visible === false) continue;
+      const opacity = Number(layer.opacity);
+      context.globalAlpha = Number.isFinite(opacity)
+        ? Math.max(0, Math.min(100, opacity)) / 100 : 1;
+      const image = layer.canvas;
+      const size = frame.size;
+      if (image.width === size * 3 && image.height === size * 3) {
+        context.drawImage(image, size, size, size, size, 0, 0, 40, 40);
+      } else {
+        context.drawImage(image, 0, 0, image.width, image.height, 0, 0, 40, 40);
+      }
+    }
+    context.globalAlpha = 1;
+  }
+
+  // Refresh only the active preview after drawing, without rebuilding the strip.
+  let thumbnailTimer = null;
+  const redrawBeforeFramePreviews = redraw;
+  redraw = function (...args) {
+    const result = redrawBeforeFramePreviews(...args);
+    clearTimeout(thumbnailTimer);
+    if (frames && tabAnimation.classList.contains("active")) {
+      thumbnailTimer = setTimeout(() => {
+        if (!tabAnimation.classList.contains("active")) return;
+        const thumbnail = frameList.querySelector("button.active .frame-thumbnail");
+        if (thumbnail) drawFrameThumbnail({ size: canvas.width, layers }, thumbnail);
+      }, 150);
+    }
+    return result;
+  };
 
   function renderFormats() {
     formatOptions.replaceChildren();
@@ -242,12 +409,12 @@
       button.classList.toggle("active", chosenFormat === format);
       button.setAttribute(
         "aria-label",
-        custom ? "Сторонний, произвольное число кадров" :
+        custom ? "Сторонний, произвольное число кадров в один ряд" :
           `${format.count} кадров: ${format.rows} рядов по ${format.columns}`
       );
 
       const label = document.createElement("span");
-      label.textContent = custom ? "Сторонний — +" :
+      label.textContent = custom ? "Сторонний — 1 ряд, +" :
         `${format.count} — ${format.rows}×${format.columns}`;
       button.appendChild(label);
 
@@ -363,7 +530,7 @@
   function syncPanels() {
     const active = tabAnimation.classList.contains("active");
     document.body.classList.toggle("animation-workspace", active);
-    for (const panel of panels) panel.hidden = !active;
+    syncBottomPanels(active);
     if (active) {
       initializeFrames();
       renderFrames();
@@ -372,14 +539,14 @@
 
   // Запоминаем текущий кадр ДО того, как animation-boundary.js
   // восстановит рисунок Art при выходе из Анимации.
-  for (const id of ["tab-art", "tab-gallery", "tab-settings"]) {
+  for (const id of ["tab-art", "tab-gallery", "tab-settings", "tab-astra2d"]) {
     document.getElementById(id).addEventListener("click", () => {
       captureFrame();
     }, true);
   }
 
   for (const id of [
-    "tab-art", "tab-animation", "tab-gallery", "tab-settings"
+    "tab-art", "tab-animation", "tab-gallery", "tab-settings", "tab-astra2d"
   ]) {
     document.getElementById(id).addEventListener("click", syncPanels);
   }
@@ -405,7 +572,7 @@
   fpsInput.style.width = "65px";
   fpsLabel.appendChild(fpsInput);
 
-  playback.append(playButton, fpsLabel);
+  playback.append(frameInfo, playButton, fpsLabel);
   framesPanel.insertBefore(playback, frameList);
 
   let playbackTimer = null;
@@ -415,6 +582,8 @@
     if (playbackTimer !== null) clearInterval(playbackTimer);
     playbackTimer = null;
     playButton.textContent = "▶ Плей";
+    onionPlaying = false;
+    updateOnionSkin();
   }
 
   function startPlayback() {
@@ -423,6 +592,8 @@
     if (!frames || frames.length < 2) return;
 
     pausePlayback();
+    onionPlaying = true;
+    updateOnionSkin();
     playbackTimer = setInterval(() => {
       if (!tabAnimation.classList.contains("active")) {
         pausePlayback();
@@ -452,7 +623,7 @@
   formatOptions.addEventListener("click", pausePlayback, true);
   canvas.addEventListener("pointerdown", pausePlayback, true);
   document.addEventListener("click", (event) => {
-    if (event.target.closest("#tab-art, #tab-gallery, #tab-settings")) {
+    if (event.target.closest("#tab-art, #tab-gallery, #tab-settings, #tab-astra2d")) {
       pausePlayback();
     }
   }, true);
@@ -479,7 +650,7 @@
   }
 
   for (const id of [
-    "tab-art", "tab-animation", "tab-gallery", "tab-settings"
+    "tab-art", "tab-animation", "tab-gallery", "tab-settings", "tab-astra2d"
   ]) {
     document.getElementById(id).addEventListener(
       "click", syncAnimationSaveButton
@@ -617,6 +788,180 @@
   }
 
   window.animationEditor = { loadSavedAnimation };
+
+  // Import a regular PNG sheet as independent, editable frame snapshots.
+  function splitAstraSpriteSheet(source, format) {
+    if (!formats.includes(format)) {
+      throw new Error("Выбери готовый формат Astra.");
+    }
+    const width = source.naturalWidth;
+    const height = source.naturalHeight;
+    if (!width || !height || width % format.columns || height % format.rows) {
+      throw new Error(
+        `PNG не делится на сетку: ${format.rows} рядов по ${format.columns} клетки.`
+      );
+    }
+    const size = width / format.columns;
+    if (height / format.rows !== size ||
+        ![8, 16, 32, 64, 128, 256, 512].includes(size)) {
+      throw new Error(
+        "Клетки должны быть квадратными: 8, 16, 32, 64, 128, 256 или 512 пикселей. " +
+        `Для выбранной сетки получилась клетка ${size}×${height / format.rows}.`
+      );
+    }
+
+    return Array.from({ length: format.count }, (_, index) => {
+      const image = document.createElement("canvas");
+      image.width = size * 3;
+      image.height = size * 3;
+      const output = image.getContext("2d");
+      output.imageSmoothingEnabled = false;
+      output.drawImage(
+        source, (index % format.columns) * size,
+        Math.floor(index / format.columns) * size, size, size,
+        size, size, size, size
+      );
+      return {
+        size,
+        selectedIndex: 0,
+        nextLayerNumber: 2,
+        usedColors: [],
+        selectionMask: null,
+        layers: [{ name: "Слой 1", canvas: image, visible: true, opacity: 100 }]
+      };
+    });
+  }
+
+  async function importAstraSpriteSheet(file, format) {
+    if (!file || !/\.png$/i.test(file.name)) {
+      throw new Error("Выбери PNG с раскадровкой.");
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      throw new Error("Файл больше 20 МБ.");
+    }
+    const signature = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    if (signature.length !== 8 ||
+        ![137, 80, 78, 71, 13, 10, 26, 10].every((byte, i) => signature[i] === byte)) {
+      throw new Error("Файл не является PNG.");
+    }
+    const source = await loadImage(await readFileAsDataUrl(file));
+    // Prepare and validate every frame before replacing the current animation.
+    const imported = splitAstraSpriteSheet(source, format);
+    if (!tabAnimation.classList.contains("active")) {
+      throw new Error("Вернись во вкладку «Анимация» и повтори импорт.");
+    }
+    pausePlayback();
+    stopDrawing();
+    animationId = newId();
+    animationName = file.name.replace(/\.png$/i, "").slice(0, 80) || "Импорт PNG";
+    chosenFormat = format;
+    chosenFrame = 0;
+    frames = imported;
+    selectionMove = null;
+    restoreSnapshot(frames[0]);
+    undoHistory.length = 0;
+    redoHistory.length = 0;
+    updateHistoryButtons();
+    renderFormats();
+    renderFrames();
+    frameList.scrollLeft = 0;
+    projectNameElement.textContent = `Анимация: ${animationName}`;
+    status.textContent =
+      `Импортировано ${frames.length} кадров по ${frames[0].size}×${frames[0].size}, ${fps} FPS. ` +
+      "Для записи в файл нажми «Сохранить изм. аним.»";
+  }
+
+  const spriteImportButton = document.createElement("button");
+  spriteImportButton.type = "button";
+  spriteImportButton.textContent = "Импорт PNG-раскадровки";
+  spriteImportButton.hidden = true;
+  if (filesChoices) filesChoices.appendChild(spriteImportButton);
+
+  const spriteInput = document.createElement("input");
+  spriteInput.type = "file";
+  spriteInput.accept = ".png,image/png";
+  spriteInput.hidden = true;
+  document.body.appendChild(spriteInput);
+
+  const spriteDialog = document.createElement("dialog");
+  spriteDialog.setAttribute("aria-labelledby", "sprite-import-title");
+  spriteDialog.style.cssText =
+    "max-width:440px;width:calc(100% - 32px);max-height:85vh;overflow:auto;" +
+    "padding:20px;border:1px solid #90caff;border-radius:8px;background:#232730;color:#f5f5f5";
+  const spriteTitle = document.createElement("h2");
+  spriteTitle.id = "sprite-import-title";
+  spriteTitle.textContent = "Импорт PNG-раскадровки";
+  const spriteHelp = document.createElement("p");
+  spriteHelp.textContent =
+    "Выбери сетку PNG. Кадры читаются слева направо, затем следующий ряд. " +
+    "Без промежутков и отступов между клетками.";
+  const spriteFormatOptions = document.createElement("div");
+  spriteFormatOptions.style.cssText = "display:grid;gap:6px";
+  const spriteWarning = document.createElement("p");
+  spriteWarning.textContent =
+    "Импорт заменит текущую анимацию в редакторе. Несохранённые изменения будут потеряны. " +
+    "Если они нужны, нажми «Отмена» и сначала сохрани анимацию. " +
+    "Сохранённые файлы не изменятся.";
+  const spriteCancel = document.createElement("button");
+  spriteCancel.type = "button";
+  spriteCancel.textContent = "Отмена";
+  spriteCancel.addEventListener("click", () => spriteDialog.close());
+  spriteDialog.append(spriteTitle, spriteHelp, spriteWarning, spriteFormatOptions, spriteCancel);
+  document.body.appendChild(spriteDialog);
+
+  let spriteImportFormat = null;
+  for (const format of formats) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px";
+    const label = document.createElement("span");
+    label.textContent = `${format.count} кадров — ${format.rows} рядов по ${format.columns}. Выбрать PNG…`;
+    const diagram = document.createElement("span");
+    diagram.className = "animation-format-diagram";
+    diagram.style.gridTemplateColumns = `repeat(${format.columns}, 7px)`;
+    for (let i = 0; i < format.count; i++) {
+      diagram.appendChild(document.createElement("span"));
+    }
+    button.append(label, diagram);
+    button.addEventListener("click", () => {
+      spriteImportFormat = format;
+      spriteInput.value = "";
+      spriteDialog.close();
+      spriteInput.click();
+    });
+    spriteFormatOptions.appendChild(button);
+  }
+
+  spriteImportButton.addEventListener("click", () => {
+    if (!tabAnimation.classList.contains("active")) return;
+    pausePlayback();
+    spriteDialog.showModal();
+  });
+  spriteInput.addEventListener("change", async () => {
+    const file = spriteInput.files[0];
+    const format = spriteImportFormat;
+    if (!file || spriteImportButton.disabled) return;
+    spriteImportButton.disabled = true;
+    status.textContent = "Разбираю PNG по кадрам...";
+    try {
+      await importAstraSpriteSheet(file, format);
+    } catch (error) {
+      status.textContent = `Не удалось импортировать PNG: ${error.message}`;
+    } finally {
+      spriteImportButton.disabled = false;
+      spriteInput.value = "";
+    }
+  });
+  function syncSpriteImportButton() {
+    spriteImportButton.hidden = !tabAnimation.classList.contains("active");
+    if (spriteImportButton.hidden && spriteDialog.open) spriteDialog.close();
+  }
+  new MutationObserver(syncSpriteImportButton).observe(tabAnimation, {
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+  syncSpriteImportButton();
+
   const spriteExportButton = document.createElement("button");
   spriteExportButton.type = "button";
   spriteExportButton.textContent = "Экспорт PNG для Astra";
@@ -638,25 +983,22 @@
 
   async function exportAstraSpriteSheet() {
     if (!tabAnimation.classList.contains("active")) return;
-    if (chosenFormat === "custom") {
-      throw new Error(
-        "Для «Стороннего» формата сетка PNG не задана."
-      );
-    }
-
     window.animationPlayback?.pause();
     initializeFrames();
     captureFrame();
 
     const size = canvas.width;
-    const count = chosenFormat.count;
-    if (frames.length !== count) {
+    const layout = chosenFormat === "custom"
+      ? { count: frames.length, columns: frames.length, rows: 1 }
+      : chosenFormat;
+    const count = layout.count;
+    if (count < 1 || count > 300 || frames.length !== count) {
       throw new Error("Число кадров не соответствует формату.");
     }
 
     const sheet = document.createElement("canvas");
-    sheet.width = chosenFormat.columns * size;
-    sheet.height = chosenFormat.rows * size;
+    sheet.width = layout.columns * size;
+    sheet.height = layout.rows * size;
     const output = sheet.getContext("2d");
     output.imageSmoothingEnabled = false;
 
@@ -664,8 +1006,8 @@
       if (frame.size !== size || !Array.isArray(frame.layers)) {
         throw new Error(`Неверный размер кадра ${index + 1}.`);
       }
-      const x = (index % chosenFormat.columns) * size;
-      const y = Math.floor(index / chosenFormat.columns) * size;
+      const x = (index % layout.columns) * size;
+      const y = Math.floor(index / layout.columns) * size;
 
       // Слои хранятся сверху вниз; собираем снизу вверх.
       for (let i = frame.layers.length - 1; i >= 0; i--) {
@@ -737,7 +1079,7 @@
   });
   syncGifButton();
 
-  async function exportTransparentGif() {
+  async function exportTransparentAnimation(format) {
     if (!tabAnimation.classList.contains("active")) return;
     pausePlayback();
     initializeFrames();
@@ -773,23 +1115,49 @@
       return outputCanvas.toDataURL("image/png");
     });
 
-    const result = await astra.callBackend("export_gif", {
+    const result = await astra.callBackend(`export_${format.toLowerCase()}`, {
       frames: pngFrames,
       fps
     });
     status.textContent =
-      `GIF сохранён: ${result.path} (${result.frames} кадров, ${fps} FPS).`;
+      `${format} сохранён: ${result.path} (${result.frames} кадров, ${fps} FPS).`;
   }
 
   gifButton.addEventListener("click", async () => {
     gifButton.disabled = true;
     status.textContent = "Собираю прозрачный GIF...";
     try {
-      await exportTransparentGif();
+      await exportTransparentAnimation("GIF");
     } catch (error) {
       status.textContent = `Не удалось экспортировать GIF: ${error.message}`;
     } finally {
       gifButton.disabled = false;
+    }
+  });
+  const apngButton = document.createElement("button");
+  apngButton.type = "button";
+  apngButton.textContent = "Экспорт APNG";
+  apngButton.hidden = true;
+  filesChoices.appendChild(apngButton);
+
+  function syncApngButton() {
+    apngButton.hidden = !tabAnimation.classList.contains("active");
+  }
+  new MutationObserver(syncApngButton).observe(tabAnimation, {
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+  syncApngButton();
+
+  apngButton.addEventListener("click", async () => {
+    apngButton.disabled = true;
+    status.textContent = "Собираю прозрачный APNG...";
+    try {
+      await exportTransparentAnimation("APNG");
+    } catch (error) {
+      status.textContent = `Не удалось экспортировать APNG: ${error.message}`;
+    } finally {
+      apngButton.disabled = false;
     }
   });
   const mp4Button = document.createElement("button");

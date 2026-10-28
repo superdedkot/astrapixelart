@@ -1,0 +1,440 @@
+@font-face {
+  font-family: "APA Pixel";
+  src: url("./fonts/Tiny5.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "APA Hand";
+  src: url("./fonts/Caveat.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+/* Visual layer only: keep canvas pixels and palette swatches unmodified. */
+:root {
+  --apa-surface: rgba(65, 22, 34, 0.9);
+  --apa-control: rgba(255, 255, 255, 0.075);
+  --apa-border: rgba(255, 205, 205, 0.14);
+  --apa-text: #f3e9eb;
+  --apa-muted: #c6aaaf;
+  --apa-accent: var(--apa-secondary);
+  --apa-control-color: #ff7775;
+  --apa-toggle-color: #cf1c29;
+  --apa-secondary: #2c2c30;
+  --apa-button: rgba(255, 255, 255, 0.08);
+  --apa-shadow: 0 5px 16px rgba(20, 4, 10, 0.22);
+  --apa-radius: 22px;
+  --apa-blur: 0px;
+  --apa-font: "APA Pixel", "Segoe UI", sans-serif;
+}
+
+body {
+  color-scheme: dark;
+  color: var(--apa-text);
+  font-family: var(--apa-font);
+  scrollbar-color: #93616a transparent;
+  scrollbar-width: thin;
+}
+
+body #top-menu {
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--apa-border);
+  border-radius: var(--apa-radius);
+  background: var(--apa-surface);
+  box-shadow: var(--apa-shadow);
+  backdrop-filter: blur(var(--apa-blur));
+  -webkit-backdrop-filter: blur(var(--apa-blur));
+}
+
+body #top-menu button {
+  border-radius: 20px;
+  color: var(--apa-text);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  text-decoration: none;
+}
+
+body #top-menu button.active {
+  background: var(--apa-secondary);
+  border-color: var(--apa-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+body .panel,
+body #gallery-page,
+body #settings-page .settings-welcome {
+  border: 1px solid var(--apa-border);
+  border-radius: var(--apa-radius);
+  background: var(--apa-surface);
+  box-shadow: var(--apa-shadow);
+  backdrop-filter: blur(var(--apa-blur));
+  -webkit-backdrop-filter: blur(var(--apa-blur));
+}
+
+body #gallery-page { padding: 14px; }
+
+body .layers-panel #import {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 5px;
+}
+
+body #deformation-options { margin: 14px 0; font-size: 13px; }
+body #deformation-options label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0; }
+body #deformation-options input { width: 90px; min-width: 0; }
+body #deformation-options button { width: 100%; }
+body #deformation-link[aria-pressed="true"] { border-color: var(--apa-accent); }
+body #deformation-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 8;
+  border: 2px solid var(--apa-accent);
+  box-sizing: border-box;
+  pointer-events: none;
+  transform-origin: center;
+}
+body #deformation-frame[hidden] { display: none; }
+body .deformation-handle {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--apa-accent);
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px #0008;
+}
+body .deformation-handle-nw { left: 0; top: 0; cursor: nwse-resize; }
+body .deformation-handle-n { left: 50%; top: 0; cursor: ns-resize; }
+body .deformation-handle-ne { left: 100%; top: 0; cursor: nesw-resize; }
+body .deformation-handle-e { left: 100%; top: 50%; cursor: ew-resize; }
+body .deformation-handle-se { left: 100%; top: 100%; cursor: nwse-resize; }
+body .deformation-handle-s { left: 50%; top: 100%; cursor: ns-resize; }
+body .deformation-handle-sw { left: 0; top: 100%; cursor: nesw-resize; }
+body .deformation-handle-w { left: 0; top: 50%; cursor: ew-resize; }
+
+/* Do not style swatch backgrounds or preview pixels as interface buttons. */
+body button:where(:not(#used-colors button)) {
+  border: 1px solid var(--apa-border);
+  border-radius: 12px;
+  background-color: var(--apa-control);
+  color: var(--apa-text);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+body button:where(:not(#used-colors button)):not(:disabled):hover {
+  background-color: rgba(255, 178, 178, 0.15);
+  border-color: rgba(255, 178, 178, 0.35);
+}
+
+body #tools button.selected,
+body #animation-format-options button.active,
+body #animation-frame-list button.active {
+  outline: 2px solid var(--apa-accent);
+  outline-offset: -2px;
+  border-color: var(--apa-accent);
+  background-color: rgba(255, 119, 117, 0.16);
+}
+
+body #save-project,
+body #astra2d-import,
+body #astra2d-play {
+  background-color: #a63340;
+  border-color: rgba(255, 160, 160, 0.3);
+  font-weight: 600;
+}
+
+body select,
+body input:not([type="range"]):not([type="checkbox"]):not([type="color"]) {
+  border: 1px solid var(--apa-border);
+  border-radius: 9px;
+  padding: 6px 8px;
+  background-color: var(--apa-secondary);
+  color: var(--apa-text);
+}
+
+body input[type="range"],
+body input[type="checkbox"] { accent-color: var(--apa-accent); }
+body input[type="checkbox"] { accent-color: var(--apa-toggle-color); }
+
+body button:focus-visible,
+body select:focus-visible,
+body input:focus-visible,
+body summary:focus-visible,
+body #viewport:focus-visible {
+  outline: 2px solid var(--apa-accent);
+  outline-offset: 2px;
+}
+
+body #viewport {
+  border-color: var(--apa-border);
+  border-radius: 14px;
+  background-color: rgba(24, 24, 28, 0.78);
+}
+
+body h2 { font-weight: 650; letter-spacing: 0.1px; }
+body .hint,
+body #astra2d-page > p,
+body #gallery-page > p { color: var(--apa-muted); }
+
+body #astra2d-page details {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--apa-border);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+body #astra2d-page summary { cursor: pointer; color: var(--apa-muted); }
+
+body #settings-page {
+  display: grid;
+  grid-template-columns: 225px minmax(0, 1fr) 225px;
+  gap: 16px;
+  height: calc(100% - 48px);
+  text-align: left;
+  min-height: 0;
+}
+body #settings-nav { overflow: auto; align-self: start; padding: 8px; }
+body #settings-nav button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 3px 0;
+  text-align: left;
+  font-weight: 600;
+  border-color: transparent;
+  background: transparent;
+}
+body #settings-nav button[aria-current="location"] {
+  background: var(--apa-secondary);
+  border-color: var(--apa-border);
+  box-shadow: var(--apa-shadow);
+}
+body #settings-content {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  overflow: auto;
+  min-width: 0;
+  padding: 24px 8px 48px;
+  overscroll-behavior: contain;
+}
+body #settings-content > [data-settings-section] {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px;
+  font-size: 16px;
+  line-height: 1.55;
+  /* Mask each card, not its ancestor: an ancestor mask blocks backdrop sampling. */
+  mask-image: linear-gradient(to bottom, transparent var(--fade-top, -24px), black var(--fade-top-end, 0px), black var(--fade-bottom-start, 100%), transparent var(--fade-bottom, 100%));
+  -webkit-mask-image: linear-gradient(to bottom, transparent var(--fade-top, -24px), black var(--fade-top-end, 0px), black var(--fade-bottom-start, 100%), transparent var(--fade-bottom, 100%));
+}
+body #settings-page .settings-welcome h2 { font-size: 24px; margin-bottom: 18px; }
+body #settings-page .settings-version { font-size: 20px; }
+body #settings-page .settings-footnote { font-size: 14px; }
+body #settings-content h2 { font-size: 22px; font-weight: 600; }
+body #settings-content p:not(.settings-version):not(.settings-font-preview) { opacity: 0.72; }
+body #settings-content .settings-welcome p:not(.settings-footnote) { opacity: 1; }
+body .settings-card { max-width: 740px; margin: 0 auto; padding: 24px; }
+body .settings-card > label { display: block; margin: 20px 0 8px; }
+body .settings-card output { float: right; font-variant-numeric: tabular-nums; }
+body .settings-card input[type="range"] { width: 100%; }
+body #settings-content .settings-range-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 160px) 64px;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+body .settings-range-row label,
+body .settings-range-row output { color: var(--apa-text); opacity: 0.7; }
+body .settings-range-row output { text-align: right; float: none; }
+body input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 8px;
+  margin: 8px 0;
+  border: 0;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--apa-control-color) var(--range-progress, 0%), rgba(0, 0, 0, 0.3) var(--range-progress, 0%));
+  box-shadow: inset 0 1px 3px #0004;
+  cursor: pointer;
+}
+#appearance-opacity { --range-progress: var(--apa-opacity-progress); }
+#appearance-radius { --range-progress: var(--apa-radius-progress); }
+#appearance-blur { --range-progress: var(--apa-blur-progress); }
+body input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #f5f5f7;
+  box-shadow: 0 2px 4px #0005;
+}
+body input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #f5f5f7;
+  box-shadow: 0 2px 4px #0005;
+}
+body #settings-content input:disabled { opacity: 0.35; cursor: default; }
+body #settings-content .settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--apa-border);
+}
+body #settings-content .settings-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--apa-border);
+}
+body #settings-content input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--apa-border);
+  border-radius: 8px;
+  background: var(--apa-control);
+  cursor: pointer;
+}
+body #settings-content input[role="switch"] {
+  appearance: none;
+  width: 44px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 99px;
+  margin: 0;
+  padding: 3px;
+  background: #0005;
+  cursor: pointer;
+}
+body #settings-content input[role="switch"]:checked { background: var(--apa-toggle-color); }
+body #settings-content input[role="switch"]::before {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f5f5f7;
+  box-shadow: 0 1px 3px #0005;
+}
+body #settings-content input[role="switch"]:checked::before { transform: translateX(18px); }
+@media (max-width: 800px) {
+  body #settings-content .settings-range-row { grid-template-columns: minmax(0, 1fr) 64px; gap: 8px; }
+  body .settings-range-row label { grid-column: 1 / -1; }
+  body #settings-content > [data-settings-section] { padding: 20px; }
+}
+body .settings-card select { width: 100%; }
+body .settings-card button { margin-top: 20px; }
+body .settings-font-preview { font-size: 24px; line-height: 1.6; overflow-wrap: anywhere; }
+body #appearance-status { max-width: 740px; margin: 12px auto; }
+@media (min-width: 701px) and (max-width: 1250px) {
+  body #settings-page { grid-template-columns: 225px minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  body #settings-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+  body #settings-content { grid-column: 1; grid-row: 2; }
+  body #settings-nav { display: flex; gap: 4px; }
+  body #settings-nav button { text-align: center; padding: 8px; }
+}
+body #astra2d-page select { max-width: 100%; }
+
+body #animation-reserve > label {
+  display: block;
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+body #animation-reserve input[type="range"] { width: 100%; }
+
+body #animation-onion-overlay {
+  position: absolute;
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+body #animation-frame-list .frame-card {
+  flex: 0 0 88px;
+  width: 88px;
+}
+
+body #animation-frame-list .frame-card > button:first-child {
+  height: 88px;
+  padding: 4px 5px;
+  text-align: left;
+  font-size: 12px;
+}
+
+body #animation-frame-list .frame-thumbnail {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 3px auto 0;
+  border: 1px solid #888;
+  background: repeating-conic-gradient(#ddd 0% 25%, white 0% 50%) 0 0 / 8px 8px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+body #animation-frame-list small {
+  margin-top: 2px;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+body #animation-frame-list .frame-more {
+  top: 3px;
+  right: 3px;
+  bottom: auto;
+  width: 25px;
+  height: 23px;
+  border-radius: 7px;
+  border-color: var(--apa-accent);
+  background-color: #30242b;
+  color: #ffb3ae;
+}
+
+/* Secondary surfaces never recolor the actual canvas or thumbnail pixels. */
+body #gallery-page .project-tile,
+body #gallery-page .animation-gallery-tile,
+body #gallery-page .rename-controls,
+body #gallery-page .animation-preview-play::after {
+  background-color: var(--apa-secondary);
+}
+body select option { background-color: var(--apa-secondary); color: var(--apa-text); }
+#appearance-buttonOpacity { --range-progress: var(--apa-buttonOpacity-progress); }
+body #art-page button:where(:not(#used-colors button):not(.deformation-handle)) {
+  background-color: var(--apa-button);
+}
+body #art-page button:where(:not(#used-colors button):not(.deformation-handle)):not(:disabled):hover {
+  border-color: var(--apa-accent);
+  box-shadow: inset 0 0 0 1px var(--apa-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body button { transition: none !important; }
+}

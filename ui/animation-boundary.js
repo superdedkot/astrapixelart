@@ -1,6 +1,6 @@
 "use strict";
 (() => {
-  const tabs = ["art", "animation", "gallery", "settings"]
+  const tabs = ["art", "animation", "gallery", "settings", "astra2d"]
     .map((name) => document.getElementById(`tab-${name}`));
   const newProject = document.getElementById("new-project");
   const saveProject = document.getElementById("save-project");

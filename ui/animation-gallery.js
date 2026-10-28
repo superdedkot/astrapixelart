@@ -234,7 +234,7 @@
   }
 
   tab.addEventListener("click", refreshAnimations);
-  for (const id of ["tab-art", "tab-animation", "tab-settings"]) {
+  for (const id of ["tab-art", "tab-animation", "tab-settings", "tab-astra2d"]) {
     document.getElementById(id).addEventListener(
       "click", stopPlayback
     );

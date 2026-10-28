@@ -1,5 +1,9 @@
 # Build artifacts
 *.astraplugin
+dist/
+*.log
+*-output.txt
+pack-help.txt
 
 __pycache__/
 *.pyc

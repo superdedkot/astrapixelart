@@ -68,7 +68,8 @@ def save_webm_file(params):
             rgba = rgba.resize((512, 512), Image.Resampling.NEAREST)
         rgba_frames.append(rgba.tobytes())
 
-    downloads = Path.home() / "Downloads"
+    from .export_settings import get_export_directory
+    downloads = get_export_directory()
     downloads.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
         prefix="astrapixelart-webm-", suffix=".webm", dir=downloads

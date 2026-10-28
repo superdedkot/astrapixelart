@@ -31,14 +31,107 @@ def write_text_atomic(path, text):
     os.replace(temporary, path)
 
 
-@ui_page("main", "Astra Pixel Art", "index.html")
+@ui_page(
+    "main", "Astra Pixel Art", "index.html",
+    icon_svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+             'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+             '<path d="m16 3 5 5L8 21H3v-5L16 3Z"/>'
+             '<path d="m13 6 5 5M3 16l5 5"/></svg>',
+)
 class Astrapixelart(Plugin):
     """Редактор пиксель-арта."""
+
+    @ui_call
+    async def open_author_telegram(self, **params):
+        import asyncio
+        import webbrowser
+        opened = await asyncio.to_thread(webbrowser.open, "https://t.me/super_ded_kot", new=2)
+        if not opened:
+            raise ValueError("Не удалось открыть браузер. Адрес канала: https://t.me/super_ded_kot")
+        return {"ok": True}
+
+    @ui_call
+    async def get_export_settings(self, **params):
+        from .export_settings import get_export_directory
+        return {"directory": str(get_export_directory())}
+
+    @ui_call
+    async def list_export_directories(self, **params):
+        import asyncio
+        from .export_settings import list_export_directories
+        return await asyncio.to_thread(list_export_directories, params.get("directory"))
+
+    @ui_call
+    async def set_export_directory(self, **params):
+        from .export_settings import save_export_directory
+        return {"directory": save_export_directory(params.get("directory"))}
+
+    @ui_call
+    async def choose_export_directory(self, **params):
+        from .export_settings import start_directory_picker
+        return start_directory_picker()
+
+    @ui_call
+    async def poll_export_directory(self, **params):
+        from .export_settings import poll_directory_picker
+        return poll_directory_picker()
+
+    @ui_call
+    async def load_appearance(self, **params):
+        path = PROJECTS_DIR / "appearance.json"
+        if not path.is_file():
+            return {"settings": None}
+        if path.stat().st_size > 4096:
+            raise ValueError("Файл оформления повреждён.")
+        return {"settings": json.loads(path.read_text(encoding="utf-8"))}
+
+    @ui_call
+    async def save_appearance(self, **params):
+        data = params.get("settings")
+        if not isinstance(data, dict):
+            raise ValueError("Не получены настройки оформления.")
+        settings = {}
+        for key, low, high in [("opacity", 10, 100), ("radius", 0, 36), ("blur", 0, 24)]:
+            value = data.get(key)
+            if type(value) not in (int, float) or not low <= value <= high:
+                raise ValueError("Неверное значение оформления.")
+            settings[key] = round(value)
+        if type(data.get("glass")) is not bool or data.get("font") not in ("pixel", "regular", "hand"):
+            raise ValueError("Неверные настройки оформления.")
+        if not isinstance(data.get("color"), str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", data["color"]):
+            raise ValueError("Неверный цвет текста.")
+        for key, default in {"panelColor": "#411622", "controlColor": "#ff7775", "toggleColor": "#cf1c29",
+                             "secondaryColor": "#2c2c30", "buttonColor": "#ffffff"}.items():
+            value = data.get(key, default)
+            if not isinstance(value, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+                raise ValueError("Неверный цвет оформления.")
+            settings[key] = value
+        opacity = data.get("buttonOpacity", 8)
+        if type(opacity) not in (int, float) or not 0 <= opacity <= 100:
+            raise ValueError("Неверная непрозрачность кнопок.")
+        settings.update(glass=data["glass"], font=data["font"], color=data["color"], buttonOpacity=round(opacity))
+        write_text_atomic(PROJECTS_DIR / "appearance.json", json.dumps(settings, ensure_ascii=False))
+        return {"ok": True}
+
+    @ui_call
+    async def list_astra_2d(self, **params):
+        from .astra_library import list_library
+        return list_library()
+
+    @ui_call
+    async def preview_astra_2d(self, **params):
+        from .astra_library import preview_clip
+        return preview_clip(params.get("characterId"), params.get("clipKey"), pack_id=params.get("packId"))
 
     @ui_call
     async def export_gif(self, **params):
         from .gif_export import save_gif_file
         return save_gif_file(params)
+
+    @ui_call
+    async def export_apng(self, **params):
+        from .apng_export import save_apng_file
+        return save_apng_file(params)
 
     @ui_call
     async def export_mp4(self, **params):
@@ -70,7 +163,8 @@ class Astrapixelart(Plugin):
         if not png.startswith(b"\x89PNG\r\n\x1a\n"):
             raise ValueError("Полученные данные не являются PNG.")
 
-        downloads = Path.home() / "Downloads"
+        from .export_settings import get_export_directory
+        downloads = get_export_directory()
         downloads.mkdir(parents=True, exist_ok=True)
 
         number = 1
@@ -140,7 +234,7 @@ class Astrapixelart(Plugin):
         size = animation.get("size")
         frames = animation.get("frames")
         layout = animation.get("format")
-        fixed = {2, 4, 6, 8, 10, 12, 15}
+        fixed = {2, 4, 6, 8, 9, 10, 12, 15, 16, 20, 21}
         if size not in (8, 16, 32, 64, 128, 256, 512):
             raise ValueError("Недопустимый размер кадра.")
         if layout not in fixed and layout != "custom":

@@ -62,7 +62,8 @@ def save_mp4_file(params):
         white.alpha_composite(rgba)
         raw_frames.append(white.convert("RGB").tobytes())
 
-    downloads = Path.home() / "Downloads"
+    from .export_settings import get_export_directory
+    downloads = get_export_directory()
     downloads.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(
         prefix="astrapixelart-mp4-", suffix=".mp4", dir=downloads

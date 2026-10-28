@@ -422,6 +422,7 @@
     <button id="tab-art" type="button" class="active">Art</button>
     <button id="tab-animation" type="button">Анимация</button>
     <button id="tab-gallery" type="button">Галерея</button>
+    <button id="tab-astra2d" type="button">Эмоции Astra</button>
     <button id="tab-settings" type="button">Настройки</button>
   </nav>
 
@@ -583,6 +584,40 @@
     <p id="gallery-message" aria-live="polite"></p>
   </section>
 
+  <section id="astra2d-page" class="panel" hidden style="height:calc(100% - 60px);overflow:auto">
+    <h2>Эмоции Astra — основа для твоего персонажа</h2>
+    <p>Возьми родные эмоции и анимации Astra за основу: посмотри, как устроены кадры, открой копию в редакторе и перерисуй под своего персонажа. Оригиналы и текущая модель Astra не изменяются.</p>
+    <p class="hint">Выбери профиль и анимацию, затем нажми «Копия в редактор» — можно менять рисунок, сохраняя движения и порядок кадров.</p>
+    <button id="astra2d-refresh" type="button">Обновить профили</button>
+    <p id="astra2d-message" aria-live="polite"></p>
+    <div id="astra2d-profiles" class="row"></div>
+    <h3 id="astra2d-title"></h3>
+    <div class="row">
+      <select id="astra2d-clips" aria-label="Анимация" style="max-width:100%" disabled></select>
+      <button id="astra2d-play" type="button" disabled>Воспроизвести</button>
+      <button id="astra2d-stop" type="button" disabled>Стоп</button>
+    </div>
+    <button id="astra2d-import" type="button" disabled>Копия в редактор</button>
+    <button id="astra2d-sheet-toggle" type="button" disabled aria-expanded="false" aria-controls="astra2d-sheet-panel">Полный PNG-лист</button>
+    <div id="astra2d-sheet-panel" hidden>
+      <p id="astra2d-sheet-info"></p>
+      <label>Масштаб листа:
+        <select id="astra2d-sheet-zoom" aria-label="Масштаб полного PNG">
+          <option value="1">100%</option>
+          <option value="2">200%</option>
+          <option value="4">400%</option>
+        </select>
+      </label>
+      <p>Исходный PNG целиком, без обрезки и перестановки. Кадры читаются слева направо, затем следующий ряд. Пустые клетки тоже входят в расчёт сетки.</p>
+      <div style="overflow:auto;max-height:65vh;max-width:100%;border:1px solid #606775;background-color:#333;background-image:conic-gradient(#555 25%,transparent 0 50%,#555 0 75%,transparent 0);background-size:16px 16px">
+        <img id="astra2d-sheet-image" alt="Полный PNG-лист выбранной анимации" style="display:block;max-width:none;image-rendering:pixelated">
+      </div>
+    </div>
+    <p id="astra2d-preview-message" aria-live="polite"></p>
+    <canvas id="astra2d-preview" width="256" height="256" hidden style="max-width:100%;image-rendering:pixelated;border:1px solid #606775"></canvas>
+    <details><summary>Источник данных</summary><p id="astra2d-source" style="overflow-wrap:anywhere"></p></details>
+  </section>
+
   <section id="settings-page" hidden>
     <style>
       #settings-page {
@@ -614,25 +649,110 @@
         font-size: 17px;
       }
     </style>
-    <div class="settings-welcome">
+    <nav id="settings-nav" class="panel" aria-label="Разделы настроек">
+      <button type="button" data-settings-target="settings-meow" aria-current="location">♧ Мяу</button>
+       <button type="button" data-settings-target="settings-windows">▣ Визуал</button>
+      <button type="button" data-settings-target="settings-fonts">Аа Шрифты</button>
+      <button type="button" data-settings-target="settings-export">↗ Экспорт</button>
+    </nav>
+    <div id="settings-content">
+    <div id="settings-meow" class="settings-welcome" data-settings-section>
       <h2>Привет от автора</h2>
       <p>Доброго времени суток! Я кот. И я художник.</p>
       <p>Этот плагин — мой подарок другим художникам. Я постарался собрать в нём инструменты, которые сам хотел бы иметь под рукой: рисование пиксель-арта, создание анимаций для 2D-моделей Astra и анимированных стикеров.</p>
       <p>Плагин ещё развивается. Новости об обновлениях буду публиковать в <a href="https://t.me/super_ded_kot" target="_blank" rel="noopener noreferrer">моём Telegram-канале</a> — если APA вам зайдёт, буду рад вас там видеть.</p>
-      <p class="settings-version">Astra Pixel Art 0.3.1</p>
+      <p class="settings-version">Astra Pixel Art 0.3.2 beta</p>
       <p>Пользуйтесь APA с удовольствием!<br>Ваш Доктор Кот 🐱</p>
-      <p class="settings-footnote">Сами настройки появятся чуть позже.</p>
+    </div>
+    <section id="settings-windows" class="panel settings-card" data-settings-section>
+       <h2>Визуал</h2>
+      <p>Изменения применяются сразу ко всем панелям плагина, но не к рисункам.</p>
+      <div class="settings-range-row">
+      <label for="appearance-opacity">Непрозрачность панелей</label>
+      <input id="appearance-opacity" type="range" min="10" max="100" step="1">
+      <output id="appearance-opacity-value" for="appearance-opacity"></output>
+      </div>
+       <label class="settings-color-row" for="appearance-panelColor">Цвет панелей <input id="appearance-panelColor" type="color" value="#411622"></label>
+       <label class="settings-color-row" for="appearance-secondaryColor">Цвет дополнительных панелей <input id="appearance-secondaryColor" type="color" value="#2c2c30"></label>
+       <p class="hint">Карточки галереи, активные пункты меню и поля выбора.</p>
+       <label class="settings-color-row" for="appearance-buttonColor">Цвет кнопок Art и анимации <input id="appearance-buttonColor" type="color" value="#ffffff"></label>
+       <div class="settings-range-row">
+         <label for="appearance-buttonOpacity">Непрозрачность фона кнопок</label>
+         <input id="appearance-buttonOpacity" type="range" min="0" max="100" step="1">
+         <output id="appearance-buttonOpacity-value" for="appearance-buttonOpacity"></output>
+       </div>
+       <label class="settings-color-row" for="appearance-controlColor">Цвет ползунков <input id="appearance-controlColor" type="color" value="#ff7775"></label>
+       <label class="settings-color-row" for="appearance-toggleColor">Цвет галочек и переключателей <input id="appearance-toggleColor" type="color" value="#cf1c29"></label>
+      <div class="settings-range-row">
+      <label for="appearance-radius">Скругление</label>
+      <input id="appearance-radius" type="range" min="0" max="36" step="1">
+      <output id="appearance-radius-value" for="appearance-radius"></output>
+      </div>
+      <label class="settings-toggle-row">Эффект стекла <input id="appearance-glass" type="checkbox" role="switch"></label>
+      <div class="settings-range-row">
+      <label for="appearance-blur">Интенсивность размытия</label>
+      <input id="appearance-blur" type="range" min="0" max="24" step="1">
+      <output id="appearance-blur-value" for="appearance-blur"></output>
+      </div>
+      <p class="hint">Стекло размывает фон внутри области плагина. Фон за пределами встроенного окна Astra может не размываться.</p>
+      <button id="appearance-reset-windows" type="button">Сбросить настройки окон</button>
+    </section>
+    <section id="settings-fonts" class="panel settings-card" data-settings-section>
+      <h2>Шрифты</h2>
+      <label for="appearance-font">Шрифт интерфейса</label>
+      <select id="appearance-font">
+        <option value="pixel">Пиксельный — Tiny5 (по умолчанию, с кириллицей)</option>
+        <option value="regular">Обычный — Segoe UI</option>
+        <option value="hand">От руки — Caveat</option>
+      </select>
+      <label for="appearance-color">Цвет текста интерфейса</label>
+      <input id="appearance-color" type="color" value="#f3e9eb">
+      <p class="settings-font-preview">Мяу! Рисуем пиксели и оживляем кадры.<br>АБВ абв • ABC abc • 0123456789</p>
+      <button id="appearance-reset-fonts" type="button">Сбросить шрифт и цвет</button>
+    </section>
+    <section id="settings-export" class="panel settings-card" data-settings-section>
+      <h2>Экспорт</h2>
+      <p>Общая папка для PNG, спрайтшитов, GIF, APNG, MP4 и WebM. Сохранённые проекты не перемещаются.</p>
+      <label for="export-directory">Папка экспорта</label>
+      <input id="export-directory" type="text" spellcheck="false" placeholder="Полный путь к папке" style="width: 100%; min-width: 0;" >
+      <div class="row">
+        <button id="export-browse" type="button">Выбрать папку…</button>
+        <button id="export-apply" type="button">Сохранить путь</button>
+        <button id="export-reset" type="button">По умолчанию — Загрузки</button>
+      </div>
+      <p id="export-settings-status" role="status" aria-live="polite"></p>
+      <div id="export-picker" hidden>
+        <h3>Выбор папки</h3>
+        <p>Открой нужную подпапку и нажми «Выбрать эту папку». Для другого пути введи его в поле выше и нажми «Открыть путь».</p>
+        <div class="row">
+          <button id="export-up" type="button">↑ На уровень выше</button>
+          <button id="export-home" type="button">Домашняя папка</button>
+          <button id="export-open-path" type="button">Открыть путь</button>
+          <select id="export-drives" aria-label="Диск"></select>
+        </div>
+        <p id="export-picker-path" style="overflow-wrap: anywhere;"></p>
+        <select id="export-folders" size="8" aria-label="Подпапки" style="width: 100%;"></select>
+        <div class="row">
+          <button id="export-open-folder" type="button">Открыть подпапку</button>
+          <button id="export-select-folder" type="button">Выбрать эту папку</button>
+          <button id="export-cancel" type="button">Отмена</button>
+        </div>
+      </div>
+    </section>
+    <p id="appearance-status" role="status" aria-live="polite"></p>
     </div>
   </section>
 
   <script src="./main.js"></script>
   <script src="./menu.js"></script>
+  <script src="./astra-library.js"></script>
   <script src="./layout.js"></script>
   <script src="./files-menu.js"></script>
   <script src="./rotate.js"></script>
   <script src="./layer-previews.js"></script>
   <script src="./layers-layout.js"></script>
   <script src="./tools-layout.js"></script>
+  <script src="./deformation.js"></script>
   <script src="./animation-panels.js"></script>
   <script src="./animation-boundary.js"></script>
   <script src="./animation-gallery.js"></script>
@@ -643,5 +763,10 @@
   <script src="./animation-open.js"></script>
   <script src="./animation-files-order.js"></script>
   <script src="./animation-layer-clipboard.js"></script>
+  <link rel="stylesheet" href="./astra-theme.css">
+  <script src="./appearance-settings.js"></script>
+  <script src="./range-controls.js"></script>
+  <script src="./export-settings.js"></script>
+  <script src="./author-link.js"></script>
 </body>
 </html>

@@ -1,31 +1,23 @@
-# Astra Pixel Art
+# Astra Pixel Art 🐱🎨
 
-A pixel-art editor and frame-by-frame animation tool for Astra.
+**Твори без границ:** рисуй пиксели, оживляй эмоции и перерисовывай даже Астру!
 
-Created by **Doctor Cat / super_ded_kot** as a gift to fellow artists.
+Пиксельный редактор и покадровая анимация прямо в Astra. От первого пикселя до готового стикера — в одном месте.
 
-## Features
+## Что можно сделать
 
-- Draw pixel art with layers, selection, fill, eraser and color picker.
-- Move, copy, mirror and rotate layers and selected pixels.
-- Keep pixels outside the visible canvas in an invisible workspace.
-- Create frame-by-frame animations with separate layers for each frame.
-- Preview animations and set their frame rate.
-- Export sprite-sheet PNGs for Astra 2D models.
-- Export animated GIF, MP4 and transparent VP9 WebM.
+- Рисовать на холсте от 8×8 до 512×512: слои, заливка, выделение, пипетка, поворот и деформация.
+- Создавать покадровую анимацию: отдельные слои для каждого кадра, миниатюры, калька соседних кадров и настройка скорости.
+- Заглянуть в «Эмоции Astra»: изучить доступные исходные анимации, сделать независимую копию в редактор и перерисовать её по-своему. Оригиналы не меняются; доступность исходников зависит от локальных файлов Astra.
+- Экспортировать PNG-спрайтшиты для 2D-моделей Astra, GIF, APNG, MP4 и прозрачные WebM-стикеры. Папку экспорта можно выбрать.
+- Настроить редактор под себя: цвета панелей и кнопок, прозрачность, скругления, стекло и шрифты.
 
-## Requirements
+## Перед началом
 
-- Astra 0.2.6 or newer.
-- The plugin was tested on Windows. Other platforms have not yet been verified.
-- The WebM export was tested with a transparent animated sticker in Telegram.
+Нужна Astra 0.2.6 или новее. Плагин проверялся на Windows; другие системы пока не проверены.
 
-## Status
+**Версия 0.3.2 beta.** Важные работы сохраняйте дополнительно отдельными PNG. Если найдёте ошибку, пришлите последовательность действий, версию Astra и скриншот.
 
-**Version 0.3.1 — early release.** Please back up important projects and report any issues you find.
+Новости и обратная связь: https://t.me/super_ded_kot
 
-News and updates: https://t.me/super_ded_kot
-
-Enjoy creating with APA!
-
-— Doctor Cat
+Пользуйтесь APA с удовольствием! — Доктор Кот 🐱
