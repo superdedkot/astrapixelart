@@ -1,4 +1,4 @@
-# Astra Pixel Art 0.3.2 beta — тестовая сборка
+# Astra Pixel Art 0.3.3 beta — тестовая сборка
 
 Автор: Доктор Кот. Новости: https://t.me/super_ded_kot
 
